@@ -54,8 +54,8 @@ long int dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages) {
         // Caso o pacote não caiba no subcontainer
         if (packages[i].weight > j || packages[i].volume > k) {
           table[i + 1][j + 1][k + 1] = table[i][j + 1][k + 1];
-          // printf("table[%d][%d][%d] = %ld\n", i + 1, j + 1, k + 1,
-          //        table[i][j + 1][k + 1]);
+           //printf("table[%d][%d][%d] = %ld\n", i + 1, j + 1, k + 1,
+           //       table[i][j + 1][k + 1]);
         } else {
           // Caso o pacote caiba no subcontainer
           long int value_with_package =
@@ -66,8 +66,8 @@ long int dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages) {
               (value_with_package > value_without_package)
                   ? value_with_package
                   : value_without_package;
-          // printf("table[%d][%d][%d] = %ld\n", i + 1, j + 1, k + 1,
-          //        table[i + 1][j + 1][k + 1]);
+           //printf("table[%d][%d][%d] = %ld\n", i + 1, j + 1, k + 1,
+           //       table[i + 1][j + 1][k + 1]);
         }
       }
     }
@@ -86,6 +86,9 @@ long int dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages) {
       volume_left -= packages[i - 1].volume;
     }
   }
+
+  vehicle->total_price = table[num_packages][W][V];
+
 /*
   // Liberar memória alocada para a tabela
   for (int i = 0; i <= num_packages; i++) {
@@ -96,7 +99,7 @@ long int dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages) {
   }
   free(table);
 */
-  return table[num_packages][W][V];
+  return vehicle->total_price;
 }
 
 int main(int argc, char *argv[]) {

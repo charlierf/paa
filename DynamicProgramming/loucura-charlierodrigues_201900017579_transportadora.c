@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 // Estrutura para representar um pacote
 typedef struct {
   char code[14];
-  int price; // Alterado para int
+  long int price;
   int weight;
   int volume;
   char sorted;
@@ -26,13 +25,15 @@ void newPackageList(PackageList *p)
     p->ant = NULL;
 }
 
-void newPackage(Package *p, char* code, int price, int weight, int volume) // Alterado price para int
+void newPackage(Package *p, char* code, long int price, int weight, int volume)
 {
+    //printf("Criando pacote %s\n", code);
     strcpy(p->code, code);
     p->price = price;
     p->weight = weight;
     p->volume = volume;
     p->sorted = 0;
+    //printf("Pacote %s criado\n", p->code);
 }
 
 void insertPackage(PackageList *p, int index)
@@ -79,10 +80,10 @@ typedef struct {
   char plate[8];
   int max_weight;
   int max_volume;
-  int total_price; // Alterado para int
+  long int total_price;
   int total_weight;
   int total_volume;
-  Package *packages; // Alterado para Package* packages;
+  Package *packages;
   int num_packages;
 } Vehicle;
 
@@ -90,7 +91,8 @@ typedef struct {
 void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, PackageList *package_list) {
    int W = vehicle->max_weight;
    int V = vehicle->max_volume;
-   PackageList *aux = package_list->prox;
+   PackageList *aux = malloc(sizeof(PackageList));
+   aux = package_list->prox;
   // Alocar dinamicamente a tabela
   long int ***table = malloc((num_packages + 2) * sizeof(long int **));
   for (int i = 0; i <= num_packages + 1; i++) {
@@ -102,6 +104,7 @@ void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, Packa
   
   // Preenchendo tabela
   for (int i = 0; i < num_packages + 1; i++) {
+    //printf("Verificando pacote %s\n", packages[aux->package_index].code);
     for (int j = 0; j < W + 1; j++) {
       for (int k = 0; k < V + 1; k++) {
         if (i == 0 || j == 0 || k == 0){
@@ -128,16 +131,26 @@ void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, Packa
         }
       }
     }
+    //printf("i = %d - Pacote %s verificado", i, packages[aux->package_index].code);
     if ((aux->prox != NULL) && (i != 0)){
+      //printf(", proximo: %s\n", packages[aux->prox->package_index].code);
       aux = aux->prox;
+    } else {
+      //printf(".\n");
     }
   }
+  //printf("\nResultado: %ld\n\n", table[num_packages][W][V]);
 
   // Imprimir os pacotes que foram incluídos no cálculo do valor total  
   int weight_left = W;
   int volume_left = V;
   for (int i = num_packages; i > 0 && table[i][weight_left][volume_left] > 0;
        i--) {
+    
+    // Skip packages that have already been sorted
+    // if (packages[aux->package_index].sorted == 1){
+    //   continue;
+    // }
     
     if (table[i][weight_left][volume_left] !=
         table[i - 1][weight_left][volume_left]) {
@@ -155,6 +168,8 @@ void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, Packa
     }
     if (aux->ant != NULL){
       aux = aux->ant;
+    } else {
+      printf("Nao ha mais pacotes\n");
     }
   }
  
@@ -172,7 +187,6 @@ void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, Packa
 }
 
 int main(int argc, char *argv[]) {
-  clock_t begin = clock();
    // Ilustrando uso de argumentos de programa
   printf("#ARGS = %i\n", argc);
   printf("PROGRAMA = %s\n", argv[0]);
@@ -219,15 +233,17 @@ int main(int argc, char *argv[]) {
     double price;
     fscanf(input, "%s %lf %d %d", packages[i].code, &price, &packages[i].weight,
            &packages[i].volume);
-    packages[i].price = (int)(price * 100);
+    packages[i].price = (long int)(price * 100);
     packages[i].sorted = 0;
     insertPackage(package_list, i);
   }
-  clock_t mid = clock();
+  //printf("Pacotes inseridos\n");
+
   for (int i = 0; i < num_vehicles; i++) {
   
    dynamicSorting(&vehicles[i], packages, num_packages, package_list);
    num_packages -= vehicles[i].num_packages;
+    //printf("Numero de pacotes restantes: %d\n", num_packages);
    fprintf(output, "[%s]R$%.2f,%dKG(%d%%),%dL(%d%%)\n", vehicles[i].plate, (double)vehicles[i].total_price / 100.0, 
    vehicles[i].total_weight, (vehicles[i].total_weight * 100) / vehicles[i].max_weight, vehicles[i].total_volume, 
    (vehicles[i].total_volume * 100) / vehicles[i].max_volume);
@@ -236,41 +252,29 @@ int main(int argc, char *argv[]) {
      fprintf(output, "%s\n", vehicles[i].packages[j].code);
    }
   }
+  printf("Pacotes ordenados\n");
   
-  int pending_value = 0;
+  long int pending_value = 0;
   int pending_weight = 0;
   int pending_volume = 0;
-    
-//   for (int i = 0; i < num_vehicles; i++) {
-//     pending_value += vehicles[i].total_price;
-//     pending_weight += vehicles[i].total_weight;
-//     pending_volume += vehicles[i].total_volume;
-//   }
-  PackageList* aux = package_list->prox;
-  Package current_package;
+
   for (int i = 1; i <= num_packages; i++) {
-    current_package = packages[aux->package_index];
-      pending_value += current_package.price;
-      pending_weight += current_package.weight;
-      pending_volume += current_package.volume;
-      aux = aux->prox;
+    if (packages[i].sorted == 0){
+      pending_value += packages[i].price;
+      pending_weight += packages[i].weight;
+      pending_volume += packages[i].volume;
+    }
   }
   fprintf(output, "[PENDENTE]R$%.2f,%dKG,%dL\n", (double)pending_value / 100.0, pending_weight, pending_volume);
-  aux = package_list->prox;
+  PackageList* aux = package_list->prox;
   for (int i = 1; i <= num_packages; i++) {
     fprintf(output, "%s\n", packages[aux->package_index].code);
     aux = aux->prox;
   }
 
-  clock_t end = clock();
-  printf("Time-mid: %f\nTime-end: %f\nEnd-Mid: %f\n",
-         ((double)(mid - begin) / CLOCKS_PER_SEC),
-         ((double)(end - begin) / CLOCKS_PER_SEC),
-         ((double)(end - mid) / CLOCKS_PER_SEC));
-
-  free(aux);
   free(vehicles);
   free(packages);
+
   fclose(input);
   fclose(output);
   return 0;

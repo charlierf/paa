@@ -6,7 +6,7 @@
 // Estrutura para representar um pacote
 typedef struct {
   char code[14];
-  int price; // Alterado para int
+  int price;
   int weight;
   int volume;
   char sorted;
@@ -26,7 +26,7 @@ void newPackageList(PackageList *p)
     p->ant = NULL;
 }
 
-void newPackage(Package *p, char* code, int price, int weight, int volume) // Alterado price para int
+void newPackage(Package *p, char* code, int price, int weight, int volume)
 {
     strcpy(p->code, code);
     p->price = price;
@@ -61,7 +61,6 @@ void removePackage(PackageList *le, int index)
 {
     PackageList *p, *aux;
     p = le->prox;
-    int i = 0;
     while ((p != NULL) && (p->package_index != index))
     {
         aux = p;
@@ -79,10 +78,10 @@ typedef struct {
   char plate[8];
   int max_weight;
   int max_volume;
-  int total_price; // Alterado para int
+  int total_price;
   int total_weight;
   int total_volume;
-  Package *packages; // Alterado para Package* packages;
+  Package *packages;
   int num_packages;
 } Vehicle;
 
@@ -90,19 +89,19 @@ typedef struct {
 void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, PackageList *package_list) {
    int W = vehicle->max_weight;
    int V = vehicle->max_volume;
-   PackageList *aux = package_list->prox;
+   int ix;
+   PackageList *aux;
+   aux = package_list->prox;
   // Alocar dinamicamente a tabela
-  long int ***table = malloc((num_packages + 2) * sizeof(long int **));
-  for (int i = 0; i <= num_packages + 1; i++) {
-    table[i] = malloc((W + 2) * sizeof(long int *));
-    for (int j = 0; j <= W + 1; j++) {
-      table[i][j] = malloc((V + 2) * sizeof(long int));
-    }
-  }
+  unsigned int ***table = malloc((num_packages + 2) * (W+2) * (V+2) * sizeof(unsigned int **));
   
   // Preenchendo tabela
   for (int i = 0; i < num_packages + 1; i++) {
+    ix = aux->package_index;
+    Package current_package = packages[ix];
+    table[i] = malloc((W + 2) * sizeof(unsigned int *));
     for (int j = 0; j < W + 1; j++) {
+      table[i][j] = malloc((V + 2) * sizeof(unsigned int));
       for (int k = 0; k < V + 1; k++) {
         if (i == 0 || j == 0 || k == 0){
           table[i][j][k] = 0;
@@ -110,24 +109,22 @@ void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, Packa
         }
 
         // Caso o pacote não caiba no subcontainer
-        if (packages[aux->package_index].weight > j || packages[aux->package_index].volume > k){
+        if (current_package.weight > j || current_package.volume > k){
           table[i][j][k] = table[i - 1][j][k];
 
         } else {
-
           // Caso o pacote caiba no subcontainer
-          long int value_with_package =
-              table[i-1][j - packages[aux->package_index].weight][k - packages[aux->package_index].volume] +
-              packages[aux->package_index].price;
-          long int value_without_package = table[i-1][j][k];
+          int value_with_package =
+              table[i-1][j - current_package.weight][k - current_package.volume] +
+              current_package.price;
+          int value_without_package = table[i-1][j][k];
           table[i][j][k] =
               (value_with_package > value_without_package)
                   ? value_with_package
                   : value_without_package;
-
         }
       }
-    }
+    }    
     if ((aux->prox != NULL) && (i != 0)){
       aux = aux->prox;
     }
@@ -136,36 +133,36 @@ void dynamicSorting(Vehicle *vehicle, Package *packages, int num_packages, Packa
   // Imprimir os pacotes que foram incluídos no cálculo do valor total  
   int weight_left = W;
   int volume_left = V;
+  vehicle->packages = malloc(sizeof(Package) * num_packages);
   for (int i = num_packages; i > 0 && table[i][weight_left][volume_left] > 0;
        i--) {
-    
+    ix = aux->package_index;
+    Package current_package = packages[ix];
     if (table[i][weight_left][volume_left] !=
-        table[i - 1][weight_left][volume_left]) {
-      
-      vehicle->total_price += packages[aux->package_index].price;
-      vehicle->total_weight += packages[aux->package_index].weight;
-      vehicle->total_volume += packages[aux->package_index].volume;
+        table[i - 1][weight_left][volume_left]) {      
+      vehicle->total_price += current_package.price;
+      vehicle->total_weight += current_package.weight;
+      vehicle->total_volume += current_package.volume;
       vehicle->num_packages++;
-      vehicle->packages = realloc(vehicle->packages, sizeof(Package) * vehicle->num_packages);
-      vehicle->packages[vehicle->num_packages - 1] = packages[aux->package_index];
-      weight_left -= packages[aux->package_index].weight;
-      volume_left -= packages[aux->package_index].volume;
+      vehicle->packages[vehicle->num_packages - 1] = current_package;
+      weight_left -= current_package.weight;
+      volume_left -= current_package.volume;
       packages[i].sorted = 1;
-      removePackage(package_list, aux->package_index);
+      removePackage(package_list, ix);
     }
     if (aux->ant != NULL){
       aux = aux->ant;
     }
   }
- 
-
+  vehicle->packages = realloc(vehicle->packages, sizeof(Package) * vehicle->num_packages);
+   
   // Liberar memória alocada para a tabela
   for (int i = 0; i <= num_packages; i++) {
     for (int j = 0; j <= W; j++) {
       free(table[i][j]);
     }
     free(table[i]);
-  }
+  }  
   free(table);
 
   //return result;
@@ -225,7 +222,6 @@ int main(int argc, char *argv[]) {
   }
   clock_t mid = clock();
   for (int i = 0; i < num_vehicles; i++) {
-  
    dynamicSorting(&vehicles[i], packages, num_packages, package_list);
    num_packages -= vehicles[i].num_packages;
    fprintf(output, "[%s]R$%.2f,%dKG(%d%%),%dL(%d%%)\n", vehicles[i].plate, (double)vehicles[i].total_price / 100.0, 
@@ -240,16 +236,10 @@ int main(int argc, char *argv[]) {
   int pending_value = 0;
   int pending_weight = 0;
   int pending_volume = 0;
-    
-//   for (int i = 0; i < num_vehicles; i++) {
-//     pending_value += vehicles[i].total_price;
-//     pending_weight += vehicles[i].total_weight;
-//     pending_volume += vehicles[i].total_volume;
-//   }
+
   PackageList* aux = package_list->prox;
-  Package current_package;
   for (int i = 1; i <= num_packages; i++) {
-    current_package = packages[aux->package_index];
+      Package current_package = packages[aux->package_index];
       pending_value += current_package.price;
       pending_weight += current_package.weight;
       pending_volume += current_package.volume;
