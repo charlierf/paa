@@ -6,29 +6,30 @@
 
 void copiar(char **destino, char **origem, int quantidade) {
   for (int i = 0; i < quantidade; i++) {
-    //printf("%s agora é %s\n", destino[i], origem[i]);
     destino[i] = origem[i];
   }
 }
-/*
-void copiar2(char **destino, char **origem, int quantidade) {
-  for (int i = 0; i < quantidade; i++) {
-    destino[i] = origem[i];
-  }
-}
-*/
+
 void intercalar(char **S, char **E, int i, int m, int j, char **cont) {
   int i1 = i, i2 = m + 1, k = i, t, u = 0;
   int weightE1, weightE2;
   char* num1 = malloc(sizeof(char)*5);
+  if (num1 == NULL) {
+    fprintf(stderr, "Failed to allocate memory for num1.\n");
+    exit(EXIT_FAILURE);
+  }
+  
   char* num2 = malloc(sizeof(char)*5);
-  //printf("Masqueloucura...\n");
+  if (num2 == NULL) {
+    fprintf(stderr, "Failed to allocate memory for num2.\n");
+    exit(EXIT_FAILURE);
+  }
+  
   while (i1 <= m && i2 <= j) {
     t = 20;
     u = 0;
     while(E[i1][t]!='('){ t++;}
     while(E[i1][t+1]!=37){
-        //printf("E[i1][t]=%c ",E[i1][t+1]);
         num1[u] = E[i1][t+1];
         t++;
         u++;
@@ -37,38 +38,25 @@ void intercalar(char **S, char **E, int i, int m, int j, char **cont) {
     u = 0;
     while(E[i2][t]!='(') {t++;}
     while(E[i2][t+1]!=37){
-        //printf("E[i2][t]=%d ",E[i2][t+1]);
         num2[u] = E[i2][t+1];
         t++;
         u++;
     }
     weightE1 = atoi(num1);
     weightE2 = atoi(num2);
-    //printf("Comparando %d e %d...\n", weightE1, weightE2);
     if (weightE1 <= weightE2) {
-      /*aux = cont[i1];
-      cont[i1] = cont[k];
-      cont[k] = aux;
-      */
       S[k++] = E[i1++];
     } else {
-      /*aux = cont[i2];
-      cont[i2] = cont[k];
-      cont[k] = aux;
-      */
       S[k++] = E[i2++];
     }
   }
   if (i1 > m){
     copiar(&S[k], &E[i2], j - i2 + 1);
-    //copiar(&cont[k], &aux[i2], j - i2 + 1);
   }
   else{
     copiar(&S[k], &E[i1], m - i1 + 1);
-    //copiar2(&cont[k], &aux[i1], m - i1 + 1);
   }
   copiar(&E[i], &S[i], j - i + 1);
-  //copiar2(&cont[i], &aux[i], j - i + 1);
 }
 
 void mergesort(char **S, char **E, int i, int j, char **cont) {
@@ -88,18 +76,34 @@ int main(int argc, char *argv[]) {
   printf("ARG1 = %s, ARG2 = %s\n", argv[1], argv[2]);
   // Abrindo arquivos
   FILE *input = fopen(argv[1], "r");
+  if (input == NULL) {
+    fprintf(stderr, "Failed to open input file.\n");
+    exit(EXIT_FAILURE);
+  }
   FILE *output = fopen(argv[2], "w");
+  if (output == NULL) {
+    fprintf(stderr, "Failed to open output file.\n");
+    exit(EXIT_FAILURE);
+  }
 
   int n;
   fscanf(input, "%d", &n);
   printf("n = %d\n", n);
   char **containers = (char **)malloc(sizeof(char *) * n);
+  if (containers == NULL) {
+    fprintf(stderr, "Failed to allocate memory for containers.\n");
+    exit(EXIT_FAILURE);
+  }
   char **cnpjs = (char **)malloc(sizeof(char *) * n);
   int *weights = (int *)malloc(sizeof(int) * n);
 
   // Cadastro de containers
   for (int i = 0; i < n; i++) {
     containers[i] = malloc(sizeof(char) * 11);
+    if (containers[i] == NULL) {
+      fprintf(stderr, "Failed to allocate memory for containers[%d].\n", i);
+      exit(EXIT_FAILURE);
+    }
     cnpjs[i] = malloc(sizeof(char) * 18);
     fscanf(input, "%s %s %d", containers[i], cnpjs[i], &weights[i]);
   }
@@ -135,8 +139,16 @@ int main(int argc, char *argv[]) {
           // Comparar o CNPJ cadastrado e a inspecionar
           if (strcmp(cnpjs[i], icnpjs[j]) != 0) {
             cnpjresult[cnpjcount] = malloc(sizeof(char) * 54);
-            sprintf(cnpjresult[cnpjcount], "%s: %s<->%s", containers[i],
-                    cnpjs[i], icnpjs[j]);
+            if (cnpjresult[cnpjcount] == NULL) {
+              fprintf(stderr, "Failed to allocate memory for cnpjresult[%d].\n", cnpjcount);
+              exit(EXIT_FAILURE);
+            }
+            int sprintf_result = sprintf(cnpjresult[cnpjcount], "%s: %s<->%s", containers[i],
+                          cnpjs[i], icnpjs[j]);
+            if (sprintf_result < 0) {
+              fprintf(stderr, "Failed to write to cnpjresult[%d].\n", cnpjcount);
+              exit(EXIT_FAILURE);
+            }
             cnpjcount++;
             break;
           }
@@ -162,7 +174,6 @@ int main(int argc, char *argv[]) {
   char **weightsorted = (char **)malloc(sizeof(char *) * weightcount);
 
   // Ordenação da inspeção por peso em ordem decrescente
-  //mergesort(weightsorted, weightinspection, 0, weightcount - 1, containerinspection);
   mergesort(weightsorted, containerinspection, 0, weightcount - 1, containerinspection);
 
   // Escrita do resultado
@@ -170,7 +181,6 @@ int main(int argc, char *argv[]) {
     fprintf(output, "%s\n", cnpjresult[i]);
   }
   for (int i = weightcount - 1; i >= 0; i--) {
-    //fprintf(output, "%s (%d%%)\n", containerinspection[i], FLOAT_TO_INT(weightsorted[i] * 100));
     fprintf(output, "%s\n", weightsorted[i]);
   }
 

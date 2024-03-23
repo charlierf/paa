@@ -241,11 +241,11 @@ int main(int argc, char *argv[]) {
   int pending_weight = 0;
   int pending_volume = 0;
     
-//   for (int i = 0; i < num_vehicles; i++) {
-//     pending_value += vehicles[i].total_price;
-//     pending_weight += vehicles[i].total_weight;
-//     pending_volume += vehicles[i].total_volume;
-//   }
+  for (int i = 0; i < num_vehicles; i++) {
+    pending_value += vehicles[i].total_price;
+    pending_weight += vehicles[i].total_weight;
+    pending_volume += vehicles[i].total_volume;
+  }
   PackageList* aux = package_list->prox;
   Package current_package;
   for (int i = 1; i <= num_packages; i++) {
