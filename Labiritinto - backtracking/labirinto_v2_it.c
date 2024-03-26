@@ -44,6 +44,17 @@ void readMaze(Maze *maze, FILE *input) {
     }
 }
 
+void printPath(Coordinate *path, int length) {
+    int i;
+    for (i = 1; i < length; i++) {        
+        if(strcmp(path[i].move, "S") == 0){
+            break;
+        }
+        if(strcmp(path[i].move, "BT") == 0){
+            break;
+        }
+    }
+}
 
 int isValidMove(Maze *maze, int x, int y) {
     return (x >= 0 && x < maze->height) &&
@@ -52,12 +63,73 @@ int isValidMove(Maze *maze, int x, int y) {
         (maze->visited[x][y] == 0);
 }
 
+/**
+ * Função recursiva para resolver o labirinto.
+ * 
+ * @param maze O labirinto a ser resolvido.
+ * @param path O caminho percorrido até o momento.
+ * @param x A coordenada x atual.
+ * @param y A coordenada y atual.
+ * @param index O índice atual do caminho.
+ * @param move O movimento atual.
+ * @return Retorna 1 se o labirinto foi resolvido, 0 caso contrário.
+ */
+int solveMazeUtil(Maze *maze, Coordinate *path, int x, int y, int index, char move[2]) {
+    strcpy(path[index-1].move, move);
+    if (x == maze->end.x && y == maze->end.y) {
+        fprintf(output, "%s@%d,%d->%d,%d\n", path[index].move, path[index].x, path[index].y, x, y);
+        path[index].x = x;
+        path[index].y = y;
+        strcpy(path[index].move, move);
+        index++;
+        fprintf(output, "SAIDA@%d,%d\n", x, y);
+        return 1;
+    }
+    if (isValidMove(maze, x, y) && !maze->visited[x][y]) {
+        strcpy(path[index].move, move);
+        if (index != 0){
+            fprintf(output, "%s@%d,%d->%d,%d\n", path[index].move, path[index].x, path[index].y, x, y);
+        }
+        
+        index++;
+        maze->visited[x][y] = 1; // Mark the current cell as visited
+        path[index].x = x;
+        path[index].y = y;
+
+        if (solveMazeUtil(maze, path, x, y + 1, index, "D")) {            
+            return 1;
+        }
+
+        if (solveMazeUtil(maze, path, x - 1, y, index, "F")) {
+            return 1;
+        }
+
+        if (solveMazeUtil(maze, path, x, y - 1, index, "E")) {
+            return 1;
+        }
+
+        if (solveMazeUtil(maze, path, x + 1, y, index, "T")) {
+            return 1;
+        }
+
+        if (index != 1) {
+            strcpy(path[index].move, "BT");
+            fprintf(output, "%s@%d,%d<-%d,%d\n", path[index].move, path[index-1].x, path[index-1].y, x, y);
+        }
+        
+        index++;
+    }
+
+    return 0;
+}
 
 int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char move[2]) {
+    printf("INICIO@%d,%d, SAIDA@%d,%d\n", x, y, maze->end.x, maze->end.y);
     while(x != maze->end.x || y != maze->end.y){
         maze->visited[x][y] = 1; // Mark the current cell as visited
         path[index].x = x;
         path[index].y = y;
+        printf("kkINICIO@%d,%d\n", x, y);
 
         if (isValidMove(maze, x, y + 1) && !maze->visited[x][y + 1]) {
             y++;
@@ -66,6 +138,7 @@ int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char 
             index++;
             path[index].x = x;
             path[index].y = y;
+            printf("D@%d,%d->%d,%d\n", path[index-1].x, path[index-1].y, x, y);
             fprintf(output, "%s@%d,%d->%d,%d\n", move, path[index-1].x, path[index-1].y, x, y);
             maze->visited[x][y] = 1;
         } else if (isValidMove(maze, x - 1, y) && !maze->visited[x - 1][y]) {
@@ -75,6 +148,7 @@ int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char 
             index++;
             path[index].x = x;
             path[index].y = y;
+            printf("F@%d,%d->%d,%d\n", path[index-1].x, path[index-1].y, x, y);
             fprintf(output, "%s@%d,%d->%d,%d\n", move, path[index-1].x, path[index-1].y, x, y);
             maze->visited[x][y] = 1;
         } else if (isValidMove(maze, x, y - 1) && !maze->visited[x][y - 1]) {
@@ -84,6 +158,7 @@ int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char 
             index++;
             path[index].x = x;
             path[index].y = y;
+            printf("E@%d,%d->%d,%d\n", path[index-1].x, path[index-1].y, x, y);
             fprintf(output, "%s@%d,%d->%d,%d\n", move, path[index-1].x, path[index-1].y, x, y);
             maze->visited[x][y] = 1;
         } else if (isValidMove(maze, x + 1, y) && !maze->visited[x + 1][y]) {
@@ -93,6 +168,7 @@ int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char 
             index++;
             path[index].x = x;
             path[index].y = y;
+            printf("T@%d,%d->%d,%d\n", path[index-1].x, path[index-1].y, x, y);
             fprintf(output, "%s@%d,%d->%d,%d\n", move, path[index-1].x, path[index-1].y, x, y);
             maze->visited[x][y] = 1;
         } else {
@@ -101,9 +177,15 @@ int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char 
             if (index < 0) {
                 return 0;
             }
+            printf("BT@%d,%d<-%d,%d\n", path[index].x, path[index].y, x, y);
             fprintf(output, "BT@%d,%d<-%d,%d\n", path[index].x, path[index].y, x, y);
+            // if (path[index].x == x && path[index].y == y) {
+            //     return 0;
+            // }
+            // index--;
             x = path[index].x;
             y = path[index].y;
+            //index++;
         }
     }
     fprintf(output, "%s@%d,%d->%d,%d\n", path[index].move, path[index].x, path[index].y, x, y);
@@ -114,8 +196,9 @@ int solveMazeUtilIt(Maze *maze, Coordinate *path, int x, int y, int index, char 
 }
 
 void solveMaze(Maze *maze) {
-    Coordinate path[MAX_HEIGHT * MAX_WIDTH];
+    Coordinate path[100];
     int i, j;
+    int visited[maze->height][maze->width];
     for (i = 0; i < maze->height; i++) {
         for (j = 0; j < maze->width; j++) {
             if (maze->maze[i][j] == 'X') {
@@ -132,7 +215,7 @@ void solveMaze(Maze *maze) {
     fprintf(output, "INICIO@%d,%d\n", maze->start.x, maze->start.y);
 
     if (solveMazeUtilIt(maze, path, maze->start.x, maze->start.y, 0, "\0")) {
-        return;
+        printPath(path, maze->width * maze->height);
     } else {
         fprintf(output, "SEM_SAIDA\n");
     }
